@@ -160,7 +160,7 @@ script /path/to/your/analysis/script.lua
 
 ## Container Management
 
-### Using Make Commands (Recommended)
+### Using Make Commands (If Available)
 
 ```bash
 # Build and run
@@ -183,6 +183,67 @@ make clean-all
 
 # See all available commands
 make help
+```
+
+### Alternative: Using Manager Scripts (No Make Required)
+
+If you don't have `make` installed, use the provided manager scripts:
+
+#### On Linux/macOS:
+```bash
+# Make script executable (Linux/macOS only)
+chmod +x df-manager.sh
+
+# Build and run
+./df-manager.sh start
+
+# Run in background
+./df-manager.sh start-bg
+
+# View logs
+./df-manager.sh logs
+
+# Access container shell
+./df-manager.sh shell
+
+# See all commands
+./df-manager.sh help
+```
+
+#### On Windows PowerShell:
+```powershell
+# Build and run
+.\df-manager.ps1 start
+
+# Run in background
+.\df-manager.ps1 start-bg
+
+# View logs
+.\df-manager.ps1 logs
+
+# Access container shell
+.\df-manager.ps1 shell
+
+# See all commands
+.\df-manager.ps1 help
+```
+
+#### On Windows Command Prompt:
+```cmd
+# Build and run
+df-manager.bat start
+
+# Run in background
+df-manager.bat start-bg
+
+# View logs
+df-manager.bat logs
+
+# Access container shell
+df-manager.bat shell
+
+# See all commands
+df-manager.bat help
 ```
 
 ### Using Docker Compose
