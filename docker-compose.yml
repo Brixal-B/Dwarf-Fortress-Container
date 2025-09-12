@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  dwarf-fortress:
+    build: .
+    container_name: dwarf-fortress-ai
+    ports:
+      - "5900:5900"  # VNC port for remote access
+    volumes:
+      - ./saves:/opt/dwarf-fortress/df/data/save    # Mount saves directory
+      - ./logs:/opt/dwarf-fortress/df/stderr.txt    # Mount logs for AI analysis
+      - ./output:/opt/dwarf-fortress/output         # Output directory for AI analysis
+    environment:
+      - DISPLAY=:99
+    stdin_open: true    # Keep STDIN open for interactive use
+    tty: true          # Allocate a pseudo-TTY
+    restart: unless-stopped
+    
+    # Optional: Add resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+volumes:
+  df_saves:
+    driver: local
+  df_logs:
+    driver: local
