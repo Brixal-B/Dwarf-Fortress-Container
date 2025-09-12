@@ -15,13 +15,39 @@ This Docker container provides a ready-to-use environment for running Dwarf Fort
 - **AI-Ready**: Optimized for automated analysis and data extraction
 - **Easy Deployment**: Git-based package with automated builds
 
+## Container Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    HOST SYSTEM                          │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │            DOCKER CONTAINER                     │   │
+│  │                                                 │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │   │
+│  │  │   Display   │  │   Dwarf     │  │ DFHack  │ │   │
+│  │  │   Server    │  │  Fortress   │  │ Engine  │ │   │
+│  │  │             │  │             │  │         │ │   │
+│  │  │ Xvfb  :99   │◄─┤ Game Engine │◄─┤ AI Hook │ │   │
+│  │  │ VNC  :5900  │  │             │  │ Scripts │ │   │
+│  │  └─────────────┘  └─────────────┘  └─────────┘ │   │
+│  │                                                 │   │
+│  │  Volume Mounts:                                 │   │
+│  │  ./saves/   ──► Game Save Files                 │   │
+│  │  ./logs/    ──► Debug & Error Logs              │   │
+│  │  ./output/  ──► AI Analysis Data                │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+For detailed architecture diagrams, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Installation
 
 ### Method 1: Git Clone (Recommended)
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/dwarf-fortress-container.git
+git clone https://github.com/Brixal-B/dwarf-fortress-container.git
 cd dwarf-fortress-container
 
 # Quick start with make
