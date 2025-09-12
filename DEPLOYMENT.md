@@ -6,30 +6,46 @@ This guide covers deploying the Dwarf Fortress container on various platforms.
 
 ### Prerequisites
 
-1. LXC container with Docker installed
-2. Sufficient resources (recommended: 4GB RAM, 2 CPUs)
+1. LXC container with Ubuntu/Debian (20.04+ recommended)
+2. Sufficient resources (recommended: 4GB RAM, 2 CPUs, 20GB storage)
 3. Network access for downloading packages
+4. Non-root user with sudo privileges
 
-### Deployment Steps
+### ⚡ One-Line Installation (Recommended)
+
+The easiest way to install on Proxmox LXC:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/username/dwarf-fortress-container.git
+# Run the automated installer
+bash <(curl -s https://raw.githubusercontent.com/Brixal-B/dwarf-fortress-container/main/install.sh)
+```
+
+The installer will:
+1. Check and install Docker if needed
+2. Configure user permissions
+3. Set up the container with your preferred settings
+4. Optionally create a systemd service for auto-start
+5. Provide connection details and management commands
+
+### Manual Deployment Steps
+
+If you prefer manual installation:
+
+```bash
+# 1. Install Docker (if not already installed)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# 2. Log out and back in, then clone repository
+git clone https://github.com/Brixal-B/dwarf-fortress-container.git
 cd dwarf-fortress-container
 
-# 2. Make sure Docker is running
-sudo systemctl start docker
-sudo systemctl enable docker
+# 3. Deploy with manager script
+chmod +x df-manager.sh
+./df-manager.sh start
 
-# 3. Add user to docker group (if not already done)
-sudo usermod -aG docker $USER
-# Log out and back in, or run: newgrp docker
-
-# 4. Deploy with make
-make quick-start
-
-# Or deploy in background
-make quick-start-detached
+# Or deploy with docker-compose
+docker-compose up --build -d
 ```
 
 ### Proxmox-Specific Configuration

@@ -1,7 +1,7 @@
 # Dwarf Fortress Docker Container for AI Analysis
 
-[![Build and Test Docker Image](https://github.com/username/dwarf-fortress-container/actions/workflows/docker-build.yml/badge.svg)](https://github.com/username/dwarf-fortress-container/actions/workflows/docker-build.yml)
-[![Docker Hub](https://img.shields.io/docker/pulls/username/dwarf-fortress-ai.svg)](https://hub.docker.com/r/username/dwarf-fortress-ai)
+[![Build and Test Docker Image](https://github.com/Brixal-B/dwarf-fortress-container/actions/workflows/docker-build.yml/badge.svg)](https://github.com/Brixal-B/dwarf-fortress-container/actions/workflows/docker-build.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/brixalb/dwarf-fortress-ai.svg)](https://hub.docker.com/r/brixalb/dwarf-fortress-ai)
 
 This Docker container provides a ready-to-use environment for running Dwarf Fortress with DFHack, specifically designed for AI analysis of game outputs.
 
@@ -43,7 +43,23 @@ For detailed architecture diagrams, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Installation
 
-### Method 1: Git Clone (Recommended)
+### ⚡ One-Line Installation (Proxmox Helper Script Style)
+
+For the easiest installation experience, use our automated installer:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/Brixal-B/dwarf-fortress-container/main/install.sh)
+```
+
+This installer will:
+- ✅ Check system requirements (Docker, Git, etc.)
+- ✅ Configure installation directory and settings
+- ✅ Clone the repository automatically
+- ✅ Build the container with your specifications
+- ✅ Set up systemd service (optional)
+- ✅ Start the container and provide access details
+
+### Method 2: Manual Git Clone
 
 ```bash
 # Clone the repository
@@ -57,18 +73,18 @@ make quick-start
 docker-compose up --build
 ```
 
-### Method 2: Docker Hub
+### Method 3: Docker Hub
 
 ```bash
 # Pull the pre-built image
-docker pull username/dwarf-fortress-ai:latest
+docker pull brixalb/dwarf-fortress-ai:latest
 
 # Run directly
 docker run -it --name dwarf-fortress \
   -p 5900:5900 \
   -v $(pwd)/saves:/opt/dwarf-fortress/df/data/save \
   -v $(pwd)/output:/opt/dwarf-fortress/output \
-  username/dwarf-fortress-ai:latest
+  brixalb/dwarf-fortress-ai:latest
 ```
 
 ## Quick Start
