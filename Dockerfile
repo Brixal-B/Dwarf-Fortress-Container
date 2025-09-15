@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     x11vnc \
     fluxbox \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for API server

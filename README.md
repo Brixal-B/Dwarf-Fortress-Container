@@ -10,7 +10,9 @@ This Docker container provides a ready-to-use environment for running Dwarf Fort
 - **Dwarf Fortress**: Latest stable version (50.14)
 - **DFHack**: Latest compatible version with scripting capabilities
 - **Headless Operation**: Runs with Xvfb for server environments
-- **VNC Access**: Remote desktop access via VNC (port 5900)
+- **Secure VNC Access**: Password-protected remote desktop access via VNC (port 5900)
+- **Web Interface**: Browser-based noVNC access with authentication
+- **Connection Validation**: Built-in password confirmation and connection testing
 - **Volume Mounts**: Easy access to saves, logs, and output files
 - **AI-Ready**: Optimized for automated analysis and data extraction
 - **Easy Deployment**: Git-based package with automated builds
@@ -135,12 +137,49 @@ cd /opt/dwarf-fortress/df
 
 ### Remote Access via VNC
 
-The container exposes a VNC server on port 5900 for remote desktop access:
+The container exposes a VNC server on port 5900 for remote desktop access with optional password protection:
+
+#### Secure VNC Connection (Recommended)
+
+When using the installer script, you'll be prompted to set up a VNC password for secure access:
 
 ```bash
-# Connect with any VNC client to:
-localhost:5900
-# No password required
+# The installer will prompt for:
+Enter VNC password (8 characters max): ********
+Confirm VNC password: ********
+```
+
+Connect with any VNC client using:
+```bash
+# VNC Client Connection:
+Host: localhost:5900
+Password: [your configured password]
+
+# Web-based noVNC access:
+http://localhost:6080
+```
+
+#### Password Validation
+
+The system includes built-in password validation:
+
+```bash
+# Test VNC connection after setup:
+./test-vnc-connection.sh
+
+# Validate VNC before starting noVNC:
+./validate-vnc.sh
+```
+
+#### Legacy No-Password Mode
+
+For development or trusted networks only:
+```bash
+# Set empty password in .env file:
+VNC_PASSWORD=
+
+# Or skip password during installation
+# (not recommended for production)
 ```
 
 ## Directory Structure

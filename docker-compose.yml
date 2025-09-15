@@ -13,9 +13,16 @@ services:
       - ./output:/opt/dwarf-fortress/output:Z       # Output directory for AI analysis (with SELinux context)
     environment:
       - DISPLAY=:99
+      - VNC_PASSWORD=${VNC_PASSWORD}
     stdin_open: true    # Keep STDIN open for interactive use
     tty: true          # Allocate a pseudo-TTY
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5900"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     
   dashy:
     image: lissy93/dashy:latest
@@ -45,9 +52,19 @@ services:
       - VNC_PORT=5900
       - DISPLAY_WIDTH=1024
       - DISPLAY_HEIGHT=768
+      - VNC_PASSWORD=${VNC_PASSWORD}
+    volumes:
+      - ./validate-vnc.sh:/usr/local/bin/validate-vnc.sh:ro
     depends_on:
-      - dwarf-fortress
+      dwarf-fortress:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/bin/bash", "/usr/local/bin/validate-vnc.sh", "test-connection"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     
     # Optional: Add resource limits
     deploy:
