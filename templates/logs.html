@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Dwarf Fortress Container Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-white">
+            <i class="bi bi-file-text"></i> Container Logs
+            <small class="text-white-50">Real-time log monitoring</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Log Controls -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label for="service-select" class="form-label">Service</label>
+                        <select class="form-select" id="service-select">
+                            <option value="">All Services</option>
+                            <option value="dwarf-fortress">Dwarf Fortress</option>
+                            <option value="dashy">Dashy Dashboard</option>
+                            <option value="novnc">noVNC Web</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="lines-select" class="form-label">Lines</label>
+                        <select class="form-select" id="lines-select">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="log-level" class="form-label">Filter Level</label>
+                        <select class="form-select" id="log-level">
+                            <option value="">All Levels</option>
+                            <option value="ERROR">Error</option>
+                            <option value="WARN">Warning</option>
+                            <option value="INFO">Info</option>
+                            <option value="DEBUG">Debug</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                            <label class="form-check-label" for="auto-refresh">
+                                Auto-refresh
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="refreshLogs()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-success btn-sm" onclick="downloadLogs()">
+                                <i class="bi bi-download"></i> Download
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="clearLogDisplay()">
+                                <i class="bi bi-trash"></i> Clear Display
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="toggleWordWrap()">
+                                <i class="bi bi-text-wrap"></i> Toggle Wrap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Display -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-terminal"></i> 
+                    <span id="log-title">All Services Logs</span>
+                </h5>
+                <div>
+                    <span class="badge bg-secondary" id="log-count">0 lines</span>
+                    <span class="badge bg-primary" id="last-update">Never</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="log-container" style="height: 600px; overflow-y: auto; background: #1a1a1a; color: #00ff00; font-family: 'Courier New', monospace; font-size: 14px; padding: 1rem;">
+                    <div id="loading-logs" class="text-center py-5">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="text-light mt-2">Loading logs...</div>
+                    </div>
+                    <pre id="log-content" style="background: transparent; border: none; color: inherit; margin: 0; white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Search Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="search-term" class="form-label">Search Term</label>
+                    <input type="text" class="form-control" id="search-term" placeholder="Enter search term...">
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="case-sensitive">
+                            <label class="form-check-label" for="case-sensitive">
+                                Case Sensitive
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="regex-search">
+                            <label class="form-check-label" for="regex-search">
+                                Regular Expression
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="search-results" class="mt-3">
+                    <!-- Search results will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="performSearch()">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let logData = '';
+let autoRefreshInterval = null;
+let wordWrapEnabled = true;
+
+async function refreshLogs() {
+    const service = document.getElementById('service-select').value;
+    const lines = document.getElementById('lines-select').value;
+    
+    document.getElementById('loading-logs').style.display = 'block';
+    document.getElementById('log-content').style.display = 'none';
+    
+    try {
+        const params = new URLSearchParams();
+        if (service) params.append('service', service);
+        params.append('lines', lines);
+        
+        const response = await fetch(`/api/logs?${params}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            displayLogs(result.stdout, service);
+            updateLogInfo(service, result.stdout);
+        } else {
+            showError('Failed to fetch logs: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        showError('Network error: ' + error.message);
+    } finally {
+        document.getElementById('loading-logs').style.display = 'none';
+        document.getElementById('log-content').style.display = 'block';
+    }
+}
+
+function displayLogs(logs, service) {
+    const container = document.getElementById('log-content');
+    const level = document.getElementById('log-level').value;
+    
+    logData = logs;
+    
+    let filteredLogs = logs;
+    if (level) {
+        const lines = logs.split('\n');
+        filteredLogs = lines.filter(line => 
+            line.toUpperCase().includes(level.toUpperCase())
+        ).join('\n');
+    }
+    
+    // Add syntax highlighting for different log levels
+    const highlightedLogs = highlightLogLevels(filteredLogs);
+    container.innerHTML = highlightedLogs;
+    
+    // Scroll to bottom
+    const logContainer = document.getElementById('log-container');
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function highlightLogLevels(logs) {
+    return logs
+        .replace(/ERROR.*$/gm, '<span style="color: #ff6b6b;">$&</span>')
+        .replace(/WARN.*$/gm, '<span style="color: #feca57;">$&</span>')
+        .replace(/INFO.*$/gm, '<span style="color: #48dbfb;">$&</span>')
+        .replace(/DEBUG.*$/gm, '<span style="color: #ff9ff3;">$&</span>')
+        .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g, '<span style="color: #54a0ff;">$&</span>');
+}
+
+function updateLogInfo(service, logs) {
+    const lines = logs.split('\n').length;
+    const serviceName = service || 'All Services';
+    
+    document.getElementById('log-title').textContent = `${serviceName} Logs`;
+    document.getElementById('log-count').textContent = `${lines} lines`;
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+}
+
+function showError(message) {
+    const container = document.getElementById('log-content');
+    container.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 2rem;">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem;"></i>
+        <div class="mt-2">${message}</div>
+    </div>`;
+}
+
+function clearLogDisplay() {
+    document.getElementById('log-content').innerHTML = '';
+    document.getElementById('log-count').textContent = '0 lines';
+}
+
+function toggleWordWrap() {
+    const container = document.getElementById('log-content');
+    wordWrapEnabled = !wordWrapEnabled;
+    container.style.whiteSpace = wordWrapEnabled ? 'pre-wrap' : 'pre';
+}
+
+function downloadLogs() {
+    if (!logData) {
+        showToast('Warning', 'No logs to download', 'warning');
+        return;
+    }
+    
+    const service = document.getElementById('service-select').value || 'all';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${service}-logs-${timestamp}.txt`;
+    
+    const blob = new Blob([logData], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showToast('Success', 'Logs downloaded successfully', 'success');
+}
+
+function performSearch() {
+    const searchTerm = document.getElementById('search-term').value;
+    const caseSensitive = document.getElementById('case-sensitive').checked;
+    const isRegex = document.getElementById('regex-search').checked;
+    
+    if (!searchTerm) {
+        showToast('Warning', 'Please enter a search term', 'warning');
+        return;
+    }
+    
+    try {
+        let regex;
+        if (isRegex) {
+            regex = new RegExp(searchTerm, caseSensitive ? 'g' : 'gi');
+        } else {
+            const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            regex = new RegExp(escaped, caseSensitive ? 'g' : 'gi');
+        }
+        
+        const lines = logData.split('\n');
+        const matches = [];
+        
+        lines.forEach((line, index) => {
+            if (regex.test(line)) {
+                matches.push({
+                    lineNumber: index + 1,
+                    content: line,
+                    highlighted: line.replace(regex, '<mark>$&</mark>')
+                });
+            }
+        });
+        
+        displaySearchResults(matches);
+    } catch (error) {
+        showToast('Error', 'Invalid search pattern: ' + error.message, 'error');
+    }
+}
+
+function displaySearchResults(matches) {
+    const container = document.getElementById('search-results');
+    
+    if (matches.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No matches found</div>';
+        return;
+    }
+    
+    let html = `<div class="alert alert-success">${matches.length} matches found</div>`;
+    html += '<div style="max-height: 300px; overflow-y: auto;">';
+    
+    matches.forEach(match => {
+        html += `
+            <div class="border-bottom py-2">
+                <small class="text-muted">Line ${match.lineNumber}</small>
+                <div style="font-family: monospace; font-size: 0.9rem;">${match.highlighted}</div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function setupAutoRefresh() {
+    const checkbox = document.getElementById('auto-refresh');
+    
+    if (checkbox.checked) {
+        autoRefreshInterval = setInterval(refreshLogs, 10000); // Refresh every 10 seconds
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+    }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Get service from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const serviceParam = urlParams.get('service');
+    if (serviceParam) {
+        document.getElementById('service-select').value = serviceParam;
+    }
+    
+    // Set up event listeners
+    document.getElementById('service-select').addEventListener('change', refreshLogs);
+    document.getElementById('lines-select').addEventListener('change', refreshLogs);
+    document.getElementById('log-level').addEventListener('change', function() {
+        if (logData) {
+            displayLogs(logData, document.getElementById('service-select').value);
+        }
+    });
+    document.getElementById('auto-refresh').addEventListener('change', setupAutoRefresh);
+    
+    // Initial load
+    refreshLogs();
+    setupAutoRefresh();
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            new bootstrap.Modal(document.getElementById('searchModal')).show();
+        }
+        if (e.key === 'F5') {
+            e.preventDefault();
+            refreshLogs();
+        }
+    });
+});
+
+// Add search button to page
+document.addEventListener('DOMContentLoaded', function() {
+    const controls = document.querySelector('.btn-group');
+    const searchBtn = document.createElement('button');
+    searchBtn.className = 'btn btn-outline-primary btn-sm';
+    searchBtn.innerHTML = '<i class="bi bi-search"></i> Search';
+    searchBtn.setAttribute('data-bs-toggle', 'modal');
+    searchBtn.setAttribute('data-bs-target', '#searchModal');
+    controls.appendChild(searchBtn);
+});
+</script>
+{% endblock %}

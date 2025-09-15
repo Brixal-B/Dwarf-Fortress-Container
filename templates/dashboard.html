@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Dwarf Fortress Container Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-white">
+            <i class="fas fa-mountain"></i> Fortress Command Center
+            <small class="text-white-50">Container Management Dashboard</small>
+        </h1>
+    </div>
+</div>
+
+<!-- System Status Overview -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card fortress-stats h-100">
+            <div class="card-body metric-card">
+                <i class="fas fa-server fa-2x mb-3"></i>
+                <div class="metric-value" id="containers-running">-</div>
+                <div class="metric-label">Containers Running</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card container-health h-100">
+            <div class="card-body metric-card">
+                <i class="fas fa-heart-pulse fa-2x mb-3"></i>
+                <div class="metric-value" id="services-healthy">-</div>
+                <div class="metric-label">Services Healthy</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100" style="background: linear-gradient(135deg, #00b894, #00cec9); color: white;">
+            <div class="card-body metric-card">
+                <i class="fas fa-hdd fa-2x mb-3"></i>
+                <div class="metric-value" id="disk-usage">-</div>
+                <div class="metric-label">Total Disk Usage</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100" style="background: linear-gradient(135deg, #fdcb6e, #e17055); color: white;">
+            <div class="card-body metric-card">
+                <i class="fas fa-clock fa-2x mb-3"></i>
+                <div class="metric-value" id="uptime">-</div>
+                <div class="metric-label">System Uptime</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Container Status Cards -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3 class="text-white mb-3">
+            <i class="bi bi-boxes"></i> Container Status
+        </h3>
+    </div>
+</div>
+
+<div class="row" id="container-cards">
+    <!-- Container cards will be populated by JavaScript -->
+</div>
+
+<!-- Service Health Monitor -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> Service Health Monitor
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="health-indicators">
+                    <!-- Health indicators will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Access Panel -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning"></i> Quick Access
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="http://localhost:4000" target="_blank" class="btn btn-info btn-custom w-100">
+                            <i class="bi bi-grid-3x3-gap"></i> Dashy Dashboard
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('fortress_page') }}" class="btn btn-warning btn-custom w-100">
+                            <i class="fas fa-fort-awesome"></i> Fortress Stats
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('logs_page') }}" class="btn btn-secondary btn-custom w-100">
+                            <i class="bi bi-file-text"></i> View Logs
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('config_page') }}" class="btn btn-success btn-custom w-100">
+                            <i class="bi bi-gear"></i> Configuration
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="http://localhost:8080/api/health" target="_blank" class="btn btn-dark btn-custom w-100">
+                            <i class="bi bi-code"></i> API Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Usage Charts -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-cpu"></i> Resource Usage
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="resourceChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-hdd"></i> Storage Usage
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="storageChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let statusData = {};
+let resourceChart = null;
+let storageChart = null;
+
+async function refreshStatus() {
+    try {
+        const response = await fetch('/api/status');
+        statusData = await response.json();
+        
+        updateDashboard();
+    } catch (error) {
+        console.error('Failed to fetch status:', error);
+        showToast('Error', 'Failed to fetch system status', 'error');
+    }
+}
+
+function updateDashboard() {
+    updateMetrics();
+    updateContainerCards();
+    updateHealthIndicators();
+    updateCharts();
+}
+
+function updateMetrics() {
+    const runningContainers = statusData.containers?.filter(c => c.state === 'running').length || 0;
+    const totalContainers = statusData.containers?.length || 0;
+    
+    document.getElementById('containers-running').textContent = `${runningContainers}/${totalContainers}`;
+    
+    const healthyServices = Object.values(statusData.health || {}).filter(h => h).length;
+    const totalServices = Object.keys(statusData.health || {}).length;
+    
+    document.getElementById('services-healthy').textContent = `${healthyServices}/${totalServices}`;
+    
+    // Calculate total disk usage
+    const diskUsage = statusData.disk_usage || {};
+    let totalSize = 0;
+    let totalUnit = 'MB';
+    
+    Object.values(diskUsage).forEach(size => {
+        if (typeof size === 'string' && size !== 'N/A' && size !== 'Not found') {
+            const match = size.match(/^([\d.]+)([KMGT]?)B?$/);
+            if (match) {
+                const value = parseFloat(match[1]);
+                const unit = match[2] || '';
+                
+                switch (unit) {
+                    case 'G': totalSize += value * 1024; break;
+                    case 'M': totalSize += value; break;
+                    case 'K': totalSize += value / 1024; break;
+                    default: totalSize += value / (1024 * 1024); break;
+                }
+            }
+        }
+    });
+    
+    if (totalSize > 1024) {
+        totalSize = (totalSize / 1024).toFixed(1);
+        totalUnit = 'GB';
+    } else {
+        totalSize = totalSize.toFixed(1);
+    }
+    
+    document.getElementById('disk-usage').textContent = `${totalSize} ${totalUnit}`;
+    
+    // Mock uptime for now
+    document.getElementById('uptime').textContent = '2h 34m';
+}
+
+function updateContainerCards() {
+    const container = document.getElementById('container-cards');
+    if (!statusData.containers) return;
+    
+    container.innerHTML = '';
+    
+    statusData.containers.forEach(containerInfo => {
+        const statusClass = containerInfo.state === 'running' ? 'status-running' : 
+                           containerInfo.state === 'exited' ? 'status-stopped' : 'status-unknown';
+        
+        const statusIcon = containerInfo.state === 'running' ? 'bi-play-circle-fill' : 
+                          containerInfo.state === 'exited' ? 'bi-stop-circle-fill' : 'bi-question-circle-fill';
+        
+        const card = document.createElement('div');
+        card.className = 'col-md-4 mb-3';
+        card.innerHTML = `
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="card-title mb-0">
+                            <i class="bi ${getServiceIcon(containerInfo.service)}"></i>
+                            ${containerInfo.service || containerInfo.name}
+                        </h6>
+                        <span class="status-badge ${statusClass}">
+                            <i class="bi ${statusIcon}"></i> ${containerInfo.state}
+                        </span>
+                    </div>
+                    <p class="card-text text-muted small">
+                        ${containerInfo.status || 'No status available'}
+                    </p>
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-success btn-sm" 
+                                onclick="controlContainer('${containerInfo.service}', 'start')"
+                                ${containerInfo.state === 'running' ? 'disabled' : ''}>
+                            <i class="bi bi-play"></i>
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" 
+                                onclick="controlContainer('${containerInfo.service}', 'restart')"
+                                ${containerInfo.state !== 'running' ? 'disabled' : ''}>
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="controlContainer('${containerInfo.service}', 'stop')"
+                                ${containerInfo.state !== 'running' ? 'disabled' : ''}>
+                            <i class="bi bi-stop"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" 
+                                onclick="showLogs('${containerInfo.service}')">
+                            <i class="bi bi-file-text"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function updateHealthIndicators() {
+    const container = document.getElementById('health-indicators');
+    const health = statusData.health || {};
+    
+    container.innerHTML = '';
+    
+    const services = [
+        { key: 'api', name: 'API Server', icon: 'bi-code', port: '8080' },
+        { key: 'dashy', name: 'Dashy Dashboard', icon: 'bi-grid-3x3-gap', port: '4000' }
+    ];
+    
+    services.forEach(service => {
+        const isHealthy = health[service.key];
+        const indicator = document.createElement('div');
+        indicator.className = 'col-md-3 mb-2';
+        indicator.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="bi ${service.icon} fa-lg"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">${service.name}</div>
+                    <small class="text-muted">:${service.port}</small>
+                </div>
+                <div>
+                    <span class="badge ${isHealthy ? 'bg-success' : 'bg-danger'}">
+                        <i class="bi ${isHealthy ? 'bi-check-circle' : 'bi-x-circle'}"></i>
+                        ${isHealthy ? 'Healthy' : 'Down'}
+                    </span>
+                </div>
+            </div>
+        `;
+        container.appendChild(indicator);
+    });
+}
+
+function updateCharts() {
+    // Resource usage chart
+    const dockerStats = statusData.docker_stats || [];
+    
+    if (dockerStats.length > 0) {
+        const ctx1 = document.getElementById('resourceChart').getContext('2d');
+        
+        if (resourceChart) {
+            resourceChart.destroy();
+        }
+        
+        resourceChart = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: dockerStats.map(stat => stat.name),
+                datasets: [{
+                    label: 'CPU Usage',
+                    data: dockerStats.map(stat => parseFloat(stat.cpu) || 0),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Storage usage chart
+    const diskUsage = statusData.disk_usage || {};
+    const storageData = Object.entries(diskUsage)
+        .filter(([key, value]) => value !== 'N/A' && value !== 'Not found')
+        .map(([key, value]) => ({
+            name: key,
+            size: parseFloat(value) || 0
+        }));
+    
+    if (storageData.length > 0) {
+        const ctx2 = document.getElementById('storageChart').getContext('2d');
+        
+        if (storageChart) {
+            storageChart.destroy();
+        }
+        
+        storageChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: storageData.map(item => item.name),
+                datasets: [{
+                    label: 'Storage Usage (MB)',
+                    data: storageData.map(item => item.size),
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+}
+
+function getServiceIcon(service) {
+    const icons = {
+        'dwarf-fortress': 'fas fa-fort-awesome',
+        'dashy': 'bi-grid-3x3-gap',
+        'web-manager': 'bi-gear'
+    };
+    return icons[service] || 'bi-box';
+}
+
+async function controlContainer(service, action) {
+    try {
+        const response = await fetch(`/api/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ service: service })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', `${service} ${action}ed successfully`, 'success');
+            setTimeout(refreshStatus, 1000);
+        } else {
+            showToast('Error', result.error || `Failed to ${action} ${service}`, 'error');
+        }
+    } catch (error) {
+        showToast('Error', `Network error: ${error.message}`, 'error');
+    }
+}
+
+function showLogs(service) {
+    window.open(`/logs?service=${service}`, '_blank');
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    refreshStatus();
+    setInterval(refreshStatus, 30000); // Refresh every 30 seconds
+});
+</script>
+{% endblock %}

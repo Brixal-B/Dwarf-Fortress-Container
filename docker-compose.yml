@@ -5,20 +5,21 @@ services:
     build: .
     container_name: dwarf-fortress-ai
     ports:
-      - "5900:5900"  # VNC port for remote access
       - "8080:8080"  # API server for dashboard integration
+      - "4000:4000"  # NoMachine remote desktop access
     volumes:
       - ./saves:/opt/dwarf-fortress/df/data/save    # Mount saves directory
       - ./logs:/opt/dwarf-fortress/df/stderr.txt    # Mount logs for AI analysis
       - ./output:/opt/dwarf-fortress/output:Z       # Output directory for AI analysis (with SELinux context)
     environment:
       - DISPLAY=:99
-      - VNC_PASSWORD=${VNC_PASSWORD}
+      - NOMACHINE_USER=dfuser
+      - NOMACHINE_PASSWORD=dfpassword
     stdin_open: true    # Keep STDIN open for interactive use
     tty: true          # Allocate a pseudo-TTY
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "5900"]
+      test: ["CMD", "pgrep", "-f", "Xvfb"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -42,39 +43,40 @@ services:
       timeout: 10s
       retries: 3
 
-  novnc:
-    image: geek1011/easy-novnc:latest
-    container_name: novnc-web
+  web-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.webmanager
+    container_name: df-web-manager
     ports:
-      - "6080:8080"    # noVNC web interface
-    environment:
-      - VNC_HOST=dwarf-fortress
-      - VNC_PORT=5900
-      - DISPLAY_WIDTH=1024
-      - DISPLAY_HEIGHT=768
-      - VNC_PASSWORD=${VNC_PASSWORD}
+      - "3000:3000"    # Web management interface
     volumes:
-      - ./validate-vnc.sh:/usr/local/bin/validate-vnc.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker socket for container management
+      - .:/app/project:ro                              # Project files for management
+      - ./templates:/app/templates:ro                  # Template files
+      - ./static:/app/static:ro                        # Static files
+    environment:
+      - FLASK_ENV=production
+      - PROJECT_PATH=/app/project
     depends_on:
-      dwarf-fortress:
-        condition: service_healthy
+      - dwarf-fortress
+      - dashy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "/bin/bash", "/usr/local/bin/validate-vnc.sh", "test-connection"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
     
-    # Optional: Add resource limits
+    # Resource limits for the web manager
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 4G
+          cpus: '0.5'
+          memory: 512M
         reservations:
-          cpus: '1.0'
-          memory: 2G
+          cpus: '0.1'
+          memory: 128M
 
 volumes:
   df_saves:

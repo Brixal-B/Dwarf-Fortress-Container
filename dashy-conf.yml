@@ -5,8 +5,6 @@ pageInfo:
   title: 🏰 Fortress Command Center
   description: Real-time Dwarf Fortress monitoring and management dashboard
   navLinks:
-    - title: 🖥️ VNC Game Access
-      path: vnc://localhost:5900
     - title: 🔧 API Health
       path: http://localhost:8080/api/health
     - title: 📊 Raw API Data
@@ -239,12 +237,6 @@ sections:
       rows: 2
       cols: 3
     items:
-      - title: 🖥️ VNC Game Access
-        description: Connect to Dwarf Fortress display
-        icon: fas fa-desktop
-        url: vnc://localhost:5900
-        target: newtab
-        tags: [game, remote, vnc]
         
       - title: 📊 Raw API Data
         description: View fortress statistics JSON

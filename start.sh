@@ -19,58 +19,11 @@ else
     echo "Warning: X server may not be fully ready"
 fi
 
-# Start VNC server (optional, for remote access)
-echo "Starting VNC server..."
-
-# Validate and set up VNC password
-if [ ! -z "$VNC_PASSWORD" ]; then
-    echo "Setting up VNC with password protection..."
-    
-    # Validate password length (VNC passwords are limited to 8 characters)
-    if [ ${#VNC_PASSWORD} -gt 8 ]; then
-        echo "WARNING: VNC password is longer than 8 characters. Truncating to 8 characters."
-        VNC_PASSWORD=${VNC_PASSWORD:0:8}
-    fi
-    
-    # Create password file securely
-    echo "$VNC_PASSWORD" | vncpasswd -f > /tmp/vncpasswd 2>/dev/null
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Failed to create VNC password file"
-        exit 1
-    fi
-    
-    chmod 600 /tmp/vncpasswd
-    echo "VNC password file created successfully"
-    
-    # Start VNC server with authentication
-    DISPLAY=:99 x11vnc -forever -rfbauth /tmp/vncpasswd -quiet -listen 0.0.0.0 -xkb -rfbport 5900 -shared &
-    VNC_PID=$!
-    echo "VNC server started on port 5900 with password protection"
-else
-    echo "WARNING: Starting VNC server without password - connection will be unprotected!"
-    DISPLAY=:99 x11vnc -forever -nopw -quiet -listen 0.0.0.0 -xkb -rfbport 5900 -shared &
-    VNC_PID=$!
-    echo "VNC server started on port 5900 (no password)"
-fi
-
-# Wait for VNC to start and verify it's listening
-echo "Waiting for VNC server to initialize..."
-sleep 3
-
-# Verify VNC server is running
-if ! nc -z localhost 5900; then
-    echo "ERROR: VNC server failed to start or is not listening on port 5900"
-    exit 1
-fi
-
-echo "VNC server is ready and listening on port 5900"
-
-# Start window manager
+# Start window manager for headless operation
 fluxbox &
 WM_PID=$!
 
-echo "Display server started on :99"
-echo "VNC server available on port 5900 (no password)"
+echo "Display server started on :99 (headless mode)"
 
 # Change to DF directory
 cd /opt/dwarf-fortress/df
@@ -96,14 +49,7 @@ echo "Starting DFHack-enabled Dwarf Fortress..."
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up..."
-    kill $XVFB_PID $VNC_PID $WM_PID $API_PID 2>/dev/null || true
-    
-    # Clean up VNC password file
-    if [ -f /tmp/vncpasswd ]; then
-        rm -f /tmp/vncpasswd
-        echo "VNC password file removed"
-    fi
-    
+    kill $XVFB_PID $WM_PID $API_PID 2>/dev/null || true
     exit
 }
 

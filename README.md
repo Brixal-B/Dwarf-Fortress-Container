@@ -10,9 +10,8 @@ This Docker container provides a ready-to-use environment for running Dwarf Fort
 - **Dwarf Fortress**: Latest stable version (50.14)
 - **DFHack**: Latest compatible version with scripting capabilities
 - **Headless Operation**: Runs with Xvfb for server environments
-- **Secure VNC Access**: Password-protected remote desktop access via VNC (port 5900)
-- **Web Interface**: Browser-based noVNC access with authentication
-- **Connection Validation**: Built-in password confirmation and connection testing
+- **API Server**: RESTful API for programmatic access to game data
+- **Web Dashboard**: Real-time monitoring and management interface
 - **Volume Mounts**: Easy access to saves, logs, and output files
 - **AI-Ready**: Optimized for automated analysis and data extraction
 - **Easy Deployment**: Git-based package with automated builds
@@ -30,8 +29,13 @@ This Docker container provides a ready-to-use environment for running Dwarf Fort
 │  │  │   Server    │  │  Fortress   │  │ Engine  │ │   │
 │  │  │             │  │             │  │         │ │   │
 │  │  │ Xvfb  :99   │◄─┤ Game Engine │◄─┤ AI Hook │ │   │
-│  │  │ VNC  :5900  │  │             │  │ Scripts │ │   │
+│  │  │ (Headless)  │  │             │  │ Scripts │ │   │
 │  │  └─────────────┘  └─────────────┘  └─────────┘ │   │
+│  │                                                 │   │
+│  │  ┌─────────────┐    API Server :8080            │   │
+│  │  │ Web Dash    │◄── RESTful API & Dashboard     │   │
+│  │  │ :4000       │    Real-time Monitoring        │   │
+│  │  └─────────────┘                                │   │
 │  │                                                 │   │
 │  │  Volume Mounts:                                 │   │
 │  │  ./saves/   ──► Game Save Files                 │   │
@@ -83,7 +87,7 @@ docker pull brixalb/dwarf-fortress-ai:latest
 
 # Run directly
 docker run -it --name dwarf-fortress \
-  -p 5900:5900 \
+  -p 8080:8080 \
   -v $(pwd)/saves:/opt/dwarf-fortress/df/data/save \
   -v $(pwd)/output:/opt/dwarf-fortress/output \
   brixalb/dwarf-fortress-ai:latest
@@ -112,7 +116,8 @@ docker build -t dwarf-fortress-ai .
 
 # Run the container
 docker run -it --name df-container \
-  -p 5900:5900 \
+  -p 8080:8080 \
+  -p 4000:80 \
   -v $(pwd)/saves:/opt/dwarf-fortress/df/data/save \
   -v $(pwd)/output:/opt/dwarf-fortress/output \
   dwarf-fortress-ai
@@ -135,52 +140,42 @@ When you run the container interactively, you'll get a bash shell where you can:
 cd /opt/dwarf-fortress/df
 ```
 
-### Remote Access via VNC
+### Web Interface Access
 
-The container exposes a VNC server on port 5900 for remote desktop access with optional password protection:
+The container provides two web interfaces for monitoring and management:
 
-#### Secure VNC Connection (Recommended)
+#### API Server
 
-When using the installer script, you'll be prompted to set up a VNC password for secure access:
-
-```bash
-# The installer will prompt for:
-Enter VNC password (8 characters max): ********
-Confirm VNC password: ********
-```
-
-Connect with any VNC client using:
-```bash
-# VNC Client Connection:
-Host: localhost:5900
-Password: [your configured password]
-
-# Web-based noVNC access:
-http://localhost:6080
-```
-
-#### Password Validation
-
-The system includes built-in password validation:
+Access the RESTful API server for programmatic data access:
 
 ```bash
-# Test VNC connection after setup:
-./test-vnc-connection.sh
+# API Health Check:
+curl http://localhost:8080/api/health
 
-# Validate VNC before starting noVNC:
-./validate-vnc.sh
+# Fortress Statistics:
+curl http://localhost:8080/api/fortress-stats
+
+# View Available Endpoints:
+curl http://localhost:8080/api/
 ```
 
-#### Legacy No-Password Mode
+#### Web Dashboard
 
-For development or trusted networks only:
+Access the comprehensive web dashboard for visual monitoring:
+
 ```bash
-# Set empty password in .env file:
-VNC_PASSWORD=
+# Dashboard URL:
+http://localhost:4000
 
-# Or skip password during installation
-# (not recommended for production)
+# Features:
+- Real-time fortress statistics
+- API endpoint monitoring
+- Save file management
+- Log file access
+- Data export controls
 ```
+
+The container runs in headless mode, providing all functionality through these web interfaces without requiring remote desktop access.
 
 ## Directory Structure
 

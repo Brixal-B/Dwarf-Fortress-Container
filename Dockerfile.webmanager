@@ -1,0 +1,41 @@
+# Dockerfile for Web Management Interface
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    netcat-traditional \
+    docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install Python dependencies
+COPY requirements.webmanager.txt .
+RUN pip install --no-cache-dir -r requirements.webmanager.txt
+
+# Copy application files
+COPY web_management_server.py .
+COPY templates/ templates/
+COPY static/ static/
+
+# Create non-root user for security
+RUN groupadd -g 1000 webmanager && \
+    useradd -u 1000 -g webmanager -s /bin/bash webmanager
+
+# Set permissions
+RUN chown -R webmanager:webmanager /app
+
+# Switch to non-root user
+USER webmanager
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/api/status || exit 1
+
+# Start the web management server
+CMD ["python", "web_management_server.py"]

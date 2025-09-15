@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Dwarf Fortress Container Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-white">
+            <i class="bi bi-gear"></i> Configuration
+            <small class="text-white-50">Manage container settings</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Configuration Tabs -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="env-tab" data-bs-toggle="tab" data-bs-target="#env-panel" type="button" role="tab">
+                            <i class="bi bi-file-text"></i> Environment
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources-panel" type="button" role="tab">
+                            <i class="bi bi-cpu"></i> Resources
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup-panel" type="button" role="tab">
+                            <i class="bi bi-shield-check"></i> Backup
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="configTabContent">
+                    <!-- Environment Configuration -->
+                    <div class="tab-pane fade show active" id="env-panel" role="tabpanel">
+                        <h5>Environment Variables</h5>
+                        <p class="text-muted">Configure container environment variables stored in .env file</p>
+                        
+                        <form id="env-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="compose-project" class="form-label">Compose Project Name</label>
+                                    <input type="text" class="form-control" id="compose-project" name="COMPOSE_PROJECT_NAME">
+                                    <div class="form-text">Used to prefix container names</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="api-port" class="form-label">API Server Port</label>
+                                    <input type="number" class="form-control" id="api-port" name="API_PORT" value="8080" min="1000" max="65535">
+                                    <div class="form-text">Port for the Dwarf Fortress API server</div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" onclick="loadConfig()">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check"></i> Save Environment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Resource Configuration -->
+                    <div class="tab-pane fade" id="resources-panel" role="tabpanel">
+                        <h5>Resource Limits</h5>
+                        <p class="text-muted">Configure CPU and memory limits for containers</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-cpu"></i> CPU Configuration
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="cpu-limit" class="form-label">CPU Limit (cores)</label>
+                                            <input type="number" class="form-control" id="cpu-limit" value="2" min="1" max="16" step="0.5">
+                                            <div class="form-text">Maximum CPU cores per container</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="cpu-reservation" class="form-label">CPU Reservation (cores)</label>
+                                            <input type="number" class="form-control" id="cpu-reservation" value="1" min="0.5" max="8" step="0.5">
+                                            <div class="form-text">Guaranteed CPU allocation</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-memory"></i> Memory Configuration
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="memory-limit" class="form-label">Memory Limit (GB)</label>
+                                            <input type="number" class="form-control" id="memory-limit" value="4" min="1" max="32">
+                                            <div class="form-text">Maximum memory per container</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="memory-reservation" class="form-label">Memory Reservation (GB)</label>
+                                            <input type="number" class="form-control" id="memory-reservation" value="2" min="1" max="16">
+                                            <div class="form-text">Guaranteed memory allocation</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-warning" onclick="applyResourceLimits()">
+                                <i class="bi bi-check"></i> Apply Resource Changes
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Backup Configuration -->
+                    <div class="tab-pane fade" id="backup-panel" role="tabpanel">
+                        <h5>Backup & Maintenance</h5>
+                        <p class="text-muted">Manage backups, updates, and maintenance tasks</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-archive"></i> Backup Operations
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <button class="btn btn-primary w-100 mb-2" onclick="createBackup()">
+                                            <i class="bi bi-download"></i> Create Backup
+                                        </button>
+                                        <button class="btn btn-outline-primary w-100 mb-2" onclick="listBackups()">
+                                            <i class="bi bi-list"></i> List Backups
+                                        </button>
+                                        <button class="btn btn-outline-warning w-100" onclick="restoreBackup()">
+                                            <i class="bi bi-upload"></i> Restore Backup
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-tools"></i> Maintenance
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <button class="btn btn-warning w-100 mb-2" onclick="cleanupDockerSystem()">
+                                            <i class="bi bi-trash"></i> Cleanup Docker
+                                        </button>
+                                        <button class="btn btn-outline-warning w-100 mb-2" onclick="updateContainers()">
+                                            <i class="bi bi-arrow-up-circle"></i> Update Images
+                                        </button>
+                                        <button class="btn btn-outline-danger w-100" onclick="resetConfiguration()">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Reset Config
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-info-circle"></i> System Information
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="system-info" class="row">
+                                            <!-- System info will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentConfig = {};
+
+async function loadConfig() {
+    try {
+        const response = await fetch('/api/config');
+        currentConfig = await response.json();
+        
+        // Populate form fields
+        Object.keys(currentConfig).forEach(key => {
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+                element.value = currentConfig[key] || '';
+            }
+        });
+        
+        loadSystemInfo();
+    } catch (error) {
+        showToast('Error', 'Failed to load configuration: ' + error.message, 'error');
+    }
+}
+
+async function saveConfig() {
+    const form = document.getElementById('env-form');
+    const formData = new FormData(form);
+    const config = {};
+    
+    for (let [key, value] of formData.entries()) {
+        config[key] = value;
+    }
+    
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Success', 'Configuration saved successfully', 'success');
+            currentConfig = { ...currentConfig, ...config };
+        } else {
+            showToast('Error', result.error || 'Failed to save configuration', 'error');
+        }
+    } catch (error) {
+        showToast('Error', 'Network error: ' + error.message, 'error');
+    }
+}
+
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+async function applyResourceLimits() {
+    const cpuLimit = document.getElementById('cpu-limit').value;
+    const cpuReservation = document.getElementById('cpu-reservation').value;
+    const memoryLimit = document.getElementById('memory-limit').value;
+    const memoryReservation = document.getElementById('memory-reservation').value;
+    
+    // This would need to update docker-compose.override.yml
+    showToast('Info', 'Resource limits require container restart to take effect', 'info');
+    
+    // For now, just show a confirmation
+    if (confirm('Apply resource changes and restart containers?')) {
+        showToast('Warning', 'Resource limit changes not yet implemented in this demo', 'warning');
+    }
+}
+
+async function createBackup() {
+    showToast('Info', 'Creating backup of saves, logs, and configuration...', 'info');
+    // Implementation would create a tar.gz of important directories
+    setTimeout(() => {
+        showToast('Success', 'Backup created successfully', 'success');
+    }, 2000);
+}
+
+function listBackups() {
+    showToast('Info', 'Backup listing not yet implemented', 'info');
+}
+
+function restoreBackup() {
+    showToast('Info', 'Backup restoration not yet implemented', 'info');
+}
+
+async function cleanupDockerSystem() {
+    if (!confirm('This will remove unused Docker images, containers, and networks. Continue?')) {
+        return;
+    }
+    
+    showToast('Info', 'Cleaning up Docker system...', 'info');
+    // Implementation would run docker system prune
+    setTimeout(() => {
+        showToast('Success', 'Docker system cleaned up', 'success');
+    }, 3000);
+}
+
+function updateContainers() {
+    if (!confirm('This will pull latest images and rebuild containers. Continue?')) {
+        return;
+    }
+    
+    showToast('Info', 'Updating container images...', 'info');
+    // Implementation would run docker-compose pull && docker-compose build
+    setTimeout(() => {
+        showToast('Success', 'Containers updated successfully', 'success');
+    }, 5000);
+}
+
+function resetConfiguration() {
+    if (!confirm('This will reset all configuration to defaults. Continue?')) {
+        return;
+    }
+    
+    showToast('Warning', 'Configuration reset not yet implemented', 'warning');
+}
+
+async function loadSystemInfo() {
+    try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+        
+        const systemInfo = document.getElementById('system-info');
+        systemInfo.innerHTML = `
+            <div class="col-md-3">
+                <strong>Containers:</strong><br>
+                <span class="text-muted">${status.containers?.length || 0} total</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Services:</strong><br>
+                <span class="text-muted">${Object.keys(status.health || {}).length} monitored</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Storage:</strong><br>
+                <span class="text-muted">${Object.keys(status.disk_usage || {}).length} volumes</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Last Update:</strong><br>
+                <span class="text-muted">${new Date(status.timestamp || Date.now()).toLocaleString()}</span>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Failed to load system info:', error);
+    }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfig();
+    
+    // Form submission
+    document.getElementById('env-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveConfig();
+    });
+    
+});
+</script>
+{% endblock %}

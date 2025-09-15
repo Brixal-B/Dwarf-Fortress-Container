@@ -17,10 +17,23 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     xvfb \
-    x11vnc \
     fluxbox \
     netcat \
+    openssh-server \
+    dbus-x11 \
+    xterm \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install NoMachine server
+RUN wget -q https://download.nomachine.com/download/8.11/Linux/nomachine_8.11.3_4_amd64.deb \
+    && dpkg -i nomachine_8.11.3_4_amd64.deb \
+    && rm nomachine_8.11.3_4_amd64.deb
+
+# Configure NoMachine server
+RUN mkdir -p /usr/NX/etc \
+    && echo "AcceptedAuthenticationMethods NX-private-key" > /usr/NX/etc/server.cfg \
+    && echo "SSHAuthorizedKeys default" >> /usr/NX/etc/server.cfg \
+    && echo "DefaultDesktopCommand /usr/bin/fluxbox" >> /usr/NX/etc/server.cfg
 
 # Install Python packages for API server
 RUN pip3 install flask flask-cors
@@ -39,7 +52,10 @@ RUN chmod +x /opt/dwarf-fortress/df_api_server.py
 RUN ./download_df.sh
 
 # Create a user for running the application
-RUN useradd -m -s /bin/bash dfuser
+RUN useradd -m -s /bin/bash dfuser \
+    && echo 'dfuser:dfpassword' | chpasswd \
+    && mkdir -p /home/dfuser/.ssh \
+    && chown dfuser:dfuser /home/dfuser/.ssh
 
 # Copy startup script before changing ownership
 COPY start.sh /opt/dwarf-fortress/
@@ -59,9 +75,9 @@ USER dfuser
 # Set up display for headless operation
 ENV DISPLAY=:99
 
-# Expose VNC port for remote access and API server port
-EXPOSE 5900
+# Expose API server port and NoMachine port
 EXPOSE 8080
+EXPOSE 4000
 
 # Default command
 CMD ["/opt/dwarf-fortress/start.sh"]
