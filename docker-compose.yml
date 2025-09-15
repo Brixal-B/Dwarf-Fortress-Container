@@ -6,14 +6,47 @@ services:
     container_name: dwarf-fortress-ai
     ports:
       - "5900:5900"  # VNC port for remote access
+      - "8080:8080"  # API server for dashboard integration
     volumes:
       - ./saves:/opt/dwarf-fortress/df/data/save    # Mount saves directory
       - ./logs:/opt/dwarf-fortress/df/stderr.txt    # Mount logs for AI analysis
-      - ./output:/opt/dwarf-fortress/output         # Output directory for AI analysis
+      - ./output:/opt/dwarf-fortress/output:Z       # Output directory for AI analysis (with SELinux context)
     environment:
       - DISPLAY=:99
     stdin_open: true    # Keep STDIN open for interactive use
     tty: true          # Allocate a pseudo-TTY
+    restart: unless-stopped
+    
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: dashy-fortress
+    ports:
+      - "4000:80"      # Dashy web interface
+    volumes:
+      - ./dashy-conf.yml:/app/public/conf.yml:ro   # Dashboard configuration
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - dwarf-fortress
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  novnc:
+    image: geek1011/easy-novnc:latest
+    container_name: novnc-web
+    ports:
+      - "6080:8080"    # noVNC web interface
+    environment:
+      - VNC_HOST=dwarf-fortress
+      - VNC_PORT=5900
+      - DISPLAY_WIDTH=1024
+      - DISPLAY_HEIGHT=768
+    depends_on:
+      - dwarf-fortress
     restart: unless-stopped
     
     # Optional: Add resource limits

@@ -3,30 +3,12 @@
 echo "Starting Dwarf Fortress container..."
 
 # Start Xvfb for headless display
-echo "Starting X virtual framebuffer..."
 Xvfb :99 -screen 0 1024x768x24 &
 XVFB_PID=$!
 
-# Wait for X server to be ready
-echo "Waiting for X server to initialize..."
-sleep 3
-
-# Verify X server is running
-DISPLAY=:99 xdpyinfo >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "X server is ready on display :99"
-else
-    echo "Warning: X server may not be fully ready"
-fi
-
 # Start VNC server (optional, for remote access)
-echo "Starting VNC server..."
-DISPLAY=:99 x11vnc -forever -nopw -quiet -listen 0.0.0.0 -xkb -rfbport 5900 &
+x11vnc -display :99 -forever -nopw -quiet -listen 0.0.0.0 -xkb &
 VNC_PID=$!
-
-# Wait a moment for VNC to start
-sleep 2
-echo "VNC server started on port 5900"
 
 # Start window manager
 fluxbox &
@@ -43,23 +25,13 @@ echo "  ./df - Run Dwarf Fortress"
 echo "  ./dfhack - Run Dwarf Fortress with DFHack"
 echo "  ./dfhack-run - Run DFHack scripts"
 
-# Start API server in background
-echo "Starting Dwarf Fortress API server on port 8080..."
-cd /opt/dwarf-fortress
-python3 df_api_server.py &
-API_PID=$!
-echo "API server started (PID: $API_PID)"
-
-# Return to DF directory
-cd /opt/dwarf-fortress/df
-
 echo ""
 echo "Starting DFHack-enabled Dwarf Fortress..."
 
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up..."
-    kill $XVFB_PID $VNC_PID $WM_PID $API_PID 2>/dev/null || true
+    kill $XVFB_PID $VNC_PID $WM_PID 2>/dev/null || true
     exit
 }
 

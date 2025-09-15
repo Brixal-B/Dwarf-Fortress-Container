@@ -1,0 +1,317 @@
+# Dwarf Fortress Command Center Dashboard
+# Powered by Dashy + DFHack API Integration
+
+pageInfo:
+  title: 🏰 Fortress Command Center
+  description: Real-time Dwarf Fortress monitoring and management dashboard
+  navLinks:
+    - title: 🖥️ VNC Game Access
+      path: vnc://localhost:5900
+    - title: 🔧 API Health
+      path: http://localhost:8080/api/health
+    - title: 📊 Raw API Data
+      path: http://localhost:8080/api/fortress-stats
+  footerText: 'Powered by DFHack API | Last Updated: {{date}}'
+
+appConfig:
+  theme: nord-frost
+  layout: auto
+  iconSize: medium
+  language: en
+  startingView: default
+  defaultOpeningMethod: newtab
+  statusCheck: true
+  statusCheckInterval: 30
+  hideComponents:
+    hideNav: false
+    hideSearch: false
+    hideSettings: false
+    hideFooter: false
+  webSearch:
+    disableWebSearch: false
+    searchEngine: duckduckgo
+  enableMultiTasking: true
+  allowConfigEdit: true
+  enableServiceWorker: true
+  disableConfiguration: false
+
+sections:
+  - name: 🏰 Fortress Overview
+    icon: fas fa-mountain
+    displayData:
+      sortBy: alphabetical
+      rows: 1
+      cols: 4
+    widgets:
+      - type: api-data
+        title: Fortress Name
+        subtitle: Current stronghold
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats
+          method: GET
+          dataPath: fortress_info.name
+          prefix: "🏰 "
+          noDataText: "No fortress data"
+          
+      - type: api-data
+        title: Game Time
+        subtitle: Current year and season
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats
+          method: GET
+          dataPath: fortress_info
+          format: "Year {{year}}, {{season}}"
+          prefix: "📅 "
+          
+      - type: api-data
+        title: Total Population
+        subtitle: All inhabitants
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/population
+          method: GET
+          dataPath: total
+          suffix: " inhabitants"
+          prefix: "👥 "
+          
+      - type: api-data
+        title: Fortress Wealth
+        subtitle: Total accumulated value
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: total
+          prefix: "💰 "
+          format: "{{value:number}}"
+
+  - name: 👥 Population Management
+    icon: fas fa-users
+    displayData:
+      sortBy: alphabetical
+      rows: 2
+      cols: 3
+    widgets:
+      - type: api-data
+        title: Dwarven Citizens
+        subtitle: Core population
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/population
+          method: GET
+          dataPath: dwarves
+          suffix: " dwarves"
+          prefix: "⛏️ "
+          
+      - type: api-data
+        title: Livestock & Pets
+        subtitle: Animal population
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/population
+          method: GET
+          dataPath: animals
+          suffix: " animals"
+          prefix: "🐄 "
+          
+      - type: api-data
+        title: Military Forces
+        subtitle: Armed defenders
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/population
+          method: GET
+          dataPath: military
+          suffix: " soldiers"
+          prefix: "⚔️ "
+          
+      - type: api-data
+        title: Visitors
+        subtitle: Temporary residents
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/population
+          method: GET
+          dataPath: visitors
+          suffix: " visitors"
+          prefix: "🚶 "
+          
+      - type: api-data
+        title: Population Health
+        subtitle: Overall status
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats
+          method: GET
+          dataPath: status
+          prefix: "❤️ "
+
+  - name: 💎 Economic Dashboard
+    icon: fas fa-coins
+    displayData:
+      sortBy: alphabetical
+      rows: 2
+      cols: 3
+    widgets:
+      - type: api-data
+        title: Military Assets
+        subtitle: Weapons value
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: weapons
+          prefix: "⚔️ "
+          format: "{{value:number}}"
+          
+      - type: api-data
+        title: Defense Equipment
+        subtitle: Armor value
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: armor
+          prefix: "🛡️ "
+          format: "{{value:number}}"
+          
+      - type: api-data
+        title: Furniture & Crafts
+        subtitle: Lifestyle goods
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: furniture
+          prefix: "🪑 "
+          format: "{{value:number}}"
+          
+      - type: api-data
+        title: Other Assets
+        subtitle: Miscellaneous wealth
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: other
+          prefix: "📦 "
+          format: "{{value:number}}"
+
+  - name: ⚙️ System Management
+    icon: fas fa-server
+    displayData:
+      sortBy: alphabetical
+      rows: 1
+      cols: 4
+    widgets:
+      - type: api-data
+        title: API Status
+        subtitle: Server health
+        options:
+          url: http://dwarf-fortress:8080/api/health
+          method: GET
+          dataPath: status
+          prefix: "🟢 "
+          
+      - type: api-data
+        title: Last Data Update
+        subtitle: Information freshness
+        options:
+          url: http://dwarf-fortress:8080/api/fortress-stats
+          method: GET
+          dataPath: timestamp
+          format: "{{value:date:time}}"
+          prefix: "🕐 "
+          
+      - type: api-data
+        title: Available Save Files
+        subtitle: Game saves count
+        options:
+          url: http://dwarf-fortress:8080/api/saves
+          method: GET
+          dataPath: count
+          suffix: " saves"
+          prefix: "💾 "
+          
+      - type: api-data
+        title: Output Files
+        subtitle: Exported data files
+        options:
+          url: http://dwarf-fortress:8080/api/output-files
+          method: GET
+          dataPath: count
+          suffix: " files"
+          prefix: "📄 "
+
+  - name: 🎮 Game Access & Tools
+    icon: fas fa-gamepad
+    displayData:
+      sortBy: default
+      rows: 2
+      cols: 3
+    items:
+      - title: 🖥️ VNC Game Access
+        description: Connect to Dwarf Fortress display
+        icon: fas fa-desktop
+        url: vnc://localhost:5900
+        target: newtab
+        tags: [game, remote, vnc]
+        
+      - title: 📊 Raw API Data
+        description: View fortress statistics JSON
+        icon: fas fa-code
+        url: http://localhost:8080/api/fortress-stats
+        target: newtab
+        tags: [api, data, json]
+        
+      - title: 📋 Container Logs
+        description: View system and game logs
+        icon: fas fa-file-alt
+        url: http://localhost:8080/api/logs
+        target: newtab
+        tags: [logs, debug, system]
+        
+      - title: 💾 Save Management
+        description: View and manage save files
+        icon: fas fa-save
+        url: http://localhost:8080/api/saves
+        target: newtab
+        tags: [saves, files, backup]
+        
+      - title: 📤 Export Data
+        description: Trigger fortress data export
+        icon: fas fa-download
+        url: http://localhost:8080/api/export-data
+        target: newtab
+        tags: [export, data, trigger]
+        
+      - title: 📁 Output Directory
+        description: View exported files
+        icon: fas fa-folder-open
+        url: http://localhost:8080/api/output-files
+        target: newtab
+        tags: [files, output, export]
+
+  - name: 🔗 External Resources
+    icon: fas fa-external-link-alt
+    displayData:
+      sortBy: default
+      rows: 1
+      cols: 4
+    items:
+      - title: 🌟 Dwarf Fortress Wiki
+        description: Complete game reference
+        icon: fas fa-book
+        url: https://dwarffortresswiki.org/
+        target: newtab
+        tags: [wiki, reference, help]
+        
+      - title: 🔧 DFHack Documentation
+        description: Modding and scripting guide
+        icon: fas fa-tools
+        url: https://docs.dfhack.org/
+        target: newtab
+        tags: [dfhack, docs, modding]
+        
+      - title: 🗣️ Reddit Community
+        description: r/dwarffortress community
+        icon: fab fa-reddit
+        url: https://reddit.com/r/dwarffortress
+        target: newtab
+        tags: [reddit, community, discussion]
+        
+      - title: 🎯 Bay 12 Games
+        description: Official Dwarf Fortress site
+        icon: fas fa-gamepad
+        url: http://www.bay12games.com/dwarves/
+        target: newtab
+        tags: [official, bay12, download]

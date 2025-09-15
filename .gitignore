@@ -12,6 +12,7 @@ output/
 # IDE and Editor files
 .vscode/
 .idea/
+*.code-workspace
 *.swp
 *.swo
 *~

@@ -1,0 +1,158 @@
+# Example Dashy Configuration for Dwarf Fortress Integration
+# Save this as conf.yml in your Dashy container's config directory
+
+pageInfo:
+  title: Fortress Command Center
+  description: Dwarf Fortress Dashboard powered by DFHack API
+  navLinks:
+    - title: VNC Access
+      path: vnc://localhost:5900
+    - title: API Docs
+      path: http://localhost:8080/api/health
+
+appConfig:
+  theme: nord-frost
+  layout: auto
+  iconSize: medium
+  language: en
+  startingView: default
+  defaultOpeningMethod: newtab
+  statusCheck: true
+  statusCheckInterval: 30
+
+sections:
+  - name: Fortress Overview
+    icon: fas fa-mountain
+    widgets:
+      - type: api-data
+        title: Fortress Status
+        subtitle: Current fortress condition
+        options:
+          url: http://localhost:8080/api/fortress-stats
+          method: GET
+          dataPath: fortress_info.name
+          prefix: "🏰 "
+          
+      - type: api-data
+        title: Population
+        subtitle: Total dwarves and creatures
+        options:
+          url: http://localhost:8080/api/fortress-stats/population
+          method: GET
+          dataPath: total
+          suffix: " inhabitants"
+          
+      - type: api-data
+        title: Fortress Wealth
+        subtitle: Total accumulated wealth
+        options:
+          url: http://localhost:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: total
+          prefix: "☷ "
+
+  - name: Population Details
+    icon: fas fa-users
+    widgets:
+      - type: api-data
+        title: Dwarves
+        subtitle: Citizen population
+        options:
+          url: http://localhost:8080/api/fortress-stats/population
+          method: GET
+          dataPath: dwarves
+          suffix: " dwarves"
+          
+      - type: api-data
+        title: Animals
+        subtitle: Livestock and pets
+        options:
+          url: http://localhost:8080/api/fortress-stats/population
+          method: GET
+          dataPath: animals
+          suffix: " animals"
+          
+      - type: api-data
+        title: Military
+        subtitle: Armed forces
+        options:
+          url: http://localhost:8080/api/fortress-stats/population
+          method: GET
+          dataPath: military
+          suffix: " soldiers"
+
+  - name: Wealth Breakdown
+    icon: fas fa-coins
+    widgets:
+      - type: api-data
+        title: Weapons
+        subtitle: Military equipment value
+        options:
+          url: http://localhost:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: weapons
+          prefix: "⚔️ "
+          
+      - type: api-data
+        title: Armor
+        subtitle: Protective gear value
+        options:
+          url: http://localhost:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: armor
+          prefix: "🛡️ "
+          
+      - type: api-data
+        title: Furniture
+        subtitle: Crafted items value
+        options:
+          url: http://localhost:8080/api/fortress-stats/wealth
+          method: GET
+          dataPath: furniture
+          prefix: "🪑 "
+
+  - name: System Status
+    icon: fas fa-server
+    widgets:
+      - type: api-data
+        title: API Status
+        subtitle: Server health check
+        options:
+          url: http://localhost:8080/api/health
+          method: GET
+          dataPath: status
+          
+      - type: api-data
+        title: Last Update
+        subtitle: Data freshness
+        options:
+          url: http://localhost:8080/api/fortress-stats
+          method: GET
+          dataPath: timestamp
+
+  - name: Game Management
+    icon: fas fa-gamepad
+    items:
+      - title: VNC Access
+        description: Connect to game display
+        icon: fas fa-desktop
+        url: vnc://localhost:5900
+        target: newtab
+        
+      - title: Container Logs
+        description: View container logs
+        icon: fas fa-file-alt
+        url: http://localhost:8080/api/logs
+        target: newtab
+        
+      - title: Save Files
+        description: Manage game saves
+        icon: fas fa-save
+        url: http://localhost:8080/api/saves
+        target: newtab
+        
+      - title: Export Data
+        description: Trigger data export
+        icon: fas fa-download
+        url: http://localhost:8080/api/export-data
+        target: newtab

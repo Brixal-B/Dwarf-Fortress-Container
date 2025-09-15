@@ -8,7 +8,7 @@ mkdir -p /opt/dwarf-fortress/df
 mkdir -p /opt/dwarf-fortress/dfhack
 
 # Get latest Dwarf Fortress release URL
-DF_VERSION="50.14"
+DF_VERSION="52_04"
 DF_URL="https://www.bay12games.com/dwarves/df_${DF_VERSION}_linux.tar.bz2"
 
 echo "Downloading Dwarf Fortress v${DF_VERSION}..."
@@ -24,7 +24,7 @@ DFHACK_URL=$(curl -s https://api.github.com/repos/DFHack/dfhack/releases/latest 
 
 if [ -z "$DFHACK_URL" ]; then
     echo "Could not find DFHack download URL. Trying alternative..."
-    DFHACK_URL="https://github.com/DFHack/dfhack/releases/download/50.14-r1.1/dfhack-50.14-r1.1-Linux-64-gcc-7.tar.xz"
+    DFHACK_URL="https://github.com/DFHack/dfhack/releases/download/52.04-r1/dfhack-52.04-r1-Linux-64bit.tar.bz2"
 fi
 
 echo "Downloading DFHack from: $DFHACK_URL"

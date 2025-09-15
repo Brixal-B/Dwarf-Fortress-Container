@@ -1,0 +1,81 @@
+# Multi-stage build for smaller final image
+FROM ubuntu:22.04 as downloader
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only essential packages for downloading
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    unzip \
+    tar \
+    bzip2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /tmp/dwarf-fortress
+
+# Copy download script
+COPY download_df.sh /tmp/dwarf-fortress/
+RUN chmod +x /tmp/dwarf-fortress/download_df.sh
+
+# Download Dwarf Fortress and DFHack
+RUN ./download_df.sh
+
+# Final stage - minimal runtime image
+FROM ubuntu:22.04
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    xvfb \
+    x11vnc \
+    fluxbox \
+    libxml2 \
+    libcurl4 \
+    zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for API server
+RUN pip3 install flask flask-cors
+
+# Create working directory
+WORKDIR /opt/dwarf-fortress
+
+# Copy DF installation from downloader stage
+COPY --from=downloader /opt/dwarf-fortress/ /opt/dwarf-fortress/
+
+# Copy API server and scripts
+COPY df_api_server.py /opt/dwarf-fortress/
+COPY scripts/ /opt/dwarf-fortress/scripts/
+COPY start.sh /opt/dwarf-fortress/
+
+# Create a user for running the application
+RUN useradd -m -s /bin/bash dfuser
+
+# Set permissions
+RUN chmod +x /opt/dwarf-fortress/df_api_server.py \
+    && chmod +x /opt/dwarf-fortress/start.sh \
+    && mkdir -p /opt/dwarf-fortress/output \
+    && chown -R dfuser:dfuser /opt/dwarf-fortress/output \
+    && chown dfuser:dfuser /opt/dwarf-fortress/df_api_server.py \
+    && chown -R dfuser:dfuser /opt/dwarf-fortress/scripts \
+    && chown dfuser:dfuser /opt/dwarf-fortress/start.sh
+
+# Switch to non-root user
+USER dfuser
+
+# Set up display for headless operation
+ENV DISPLAY=:99
+
+# Expose VNC port for remote access and API server port
+EXPOSE 5900
+EXPOSE 8080
+
+# Default command
+CMD ["/opt/dwarf-fortress/start.sh"]
