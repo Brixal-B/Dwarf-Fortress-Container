@@ -21,7 +21,12 @@ app.secret_key = 'df-container-management-2024'
 CORS(app)
 
 # Configuration
-BASE_DIR = Path(__file__).parent
+# Check if running in container (project files are in /app/project)
+if os.path.exists('/app/project/docker-compose.yml'):
+    BASE_DIR = Path('/app/project')
+else:
+    BASE_DIR = Path(__file__).parent
+    
 COMPOSE_FILE = BASE_DIR / 'docker-compose.yml'
 ENV_FILE = BASE_DIR / '.env'
 
@@ -64,26 +69,112 @@ class ContainerManager:
     
     def get_container_status(self):
         """Get status of all containers"""
-        result = self.run_command('docker-compose ps --format json')
+        # Use docker ps directly as it's more reliable than docker-compose ps
+        result = self.run_command('docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"')
         containers = []
         
         if result['success'] and result['stdout']:
-            try:
-                # Parse each line as JSON (docker-compose ps --format json outputs one JSON per line)
-                lines = result['stdout'].strip().split('\n')
-                for line in lines:
-                    if line.strip():
-                        container = json.loads(line)
-                        containers.append({
-                            'name': container.get('Name', ''),
-                            'service': container.get('Service', ''),
-                            'state': container.get('State', ''),
-                            'status': container.get('Status', ''),
-                            'ports': container.get('Publishers', [])
-                        })
-            except json.JSONDecodeError:
-                # Fallback to simple parsing
-                pass
+            lines = result['stdout'].strip().split('\n')
+            
+            # Skip header line and find containers we care about
+            for line in lines[1:]:  # Skip header
+                if any(name in line for name in ['dashy-fortress', 'df-web-manager', 'dwarf-fortress-ai']):
+                    try:
+                        import re
+                        
+                        # Parse by splitting on multiple spaces since table format uses space alignment
+                        parts = re.split(r'\s{2,}', line.strip())
+                        
+                        if len(parts) >= 3:
+                            name = parts[0].strip()
+                            image = parts[1].strip()
+                            status = parts[2].strip()
+                            ports = parts[3].strip() if len(parts) > 3 else ''
+                            
+                            # Extract state and health from status
+                            state = 'Unknown'
+                            health = 'unknown'
+                            
+                            if 'Up' in status:
+                                state = 'Up'
+                                # Check for health status in parentheses
+                                if '(health: starting)' in status:
+                                    health = 'starting'
+                                elif '(healthy)' in status:
+                                    health = 'healthy'
+                                elif '(unhealthy)' in status:
+                                    health = 'unhealthy'
+                                elif 'Up' in status:
+                                    health = 'running'
+                            elif 'Exited' in status:
+                                state = 'Exited'
+                            
+                            # Map container name to service
+                            service = name
+                            if 'dwarf-fortress-ai' in name:
+                                service = 'dwarf-fortress'
+                            elif 'dashy-fortress' in name:
+                                service = 'dashy'
+                            elif 'df-web-manager' in name:
+                                service = 'web-manager'
+                            
+                            containers.append({
+                                'name': name,
+                                'service': service,
+                                'image': image,
+                                'state': state,
+                                'health': health,
+                                'status': f"{state} ({health})" if health != 'unknown' else state,
+                                'ports': ports.replace('0.0.0.0:', '') if ports else ''
+                            })
+                        else:
+                            # If regex split didn't work, try simple space split for name extraction
+                            simple_parts = line.strip().split()
+                            if len(simple_parts) >= 1:
+                                name = simple_parts[0]
+                                # Extract basic info from the line
+                                service = name
+                                if 'dwarf-fortress-ai' in name:
+                                    service = 'dwarf-fortress'
+                                elif 'dashy-fortress' in name:
+                                    service = 'dashy'
+                                elif 'df-web-manager' in name:
+                                    service = 'web-manager'
+                                
+                                # Extract health from the line
+                                health = 'unknown'
+                                if '(healthy)' in line:
+                                    health = 'healthy'
+                                elif '(unhealthy)' in line:
+                                    health = 'unhealthy'
+                                elif '(health: starting)' in line:
+                                    health = 'starting'
+                                elif 'Up' in line:
+                                    health = 'running'
+                                
+                                containers.append({
+                                    'name': name,
+                                    'service': service,
+                                    'image': 'unknown',
+                                    'state': 'Up' if 'Up' in line else 'Down',
+                                    'health': health,
+                                    'status': f"Up ({health})" if 'Up' in line else 'Down',
+                                    'ports': ''
+                                })
+                    except Exception as e:
+                        # Final fallback for any parsing errors
+                        parts = line.split()
+                        if len(parts) >= 1:
+                            name = parts[0]
+                            containers.append({
+                                'name': name,
+                                'service': name.replace('-fortress', '').replace('df-', ''),
+                                'image': 'unknown',
+                                'state': 'Up' if 'Up' in line else 'Down',
+                                'health': 'unknown',
+                                'status': 'Running' if 'Up' in line else 'Stopped',
+                                'ports': ''
+                            })
         
         return containers
     
@@ -132,13 +223,23 @@ class ContainerManager:
         """Get health status of services"""
         health_status = {}
         
-        # Check API server
-        api_result = self.run_command('curl -f http://localhost:8080/api/health')
+        # Check API server with timeout and retries
+        api_result = self.run_command('curl -f --connect-timeout 5 --max-time 10 http://localhost:8080/api/health')
         health_status['api'] = api_result['success']
         
-        # Check Dashy
-        dashy_result = self.run_command('curl -f http://localhost:4000')
+        # Check Dashy with timeout and retries
+        dashy_result = self.run_command('curl -f --connect-timeout 5 --max-time 10 http://localhost:4000/')
         health_status['dashy'] = dashy_result['success']
+        
+        # If direct checks fail, check via docker inspect
+        if not health_status['api'] or not health_status['dashy']:
+            docker_health = self.run_command('docker ps --format "table {{.Names}}\t{{.Status}}" --filter name=dwarf-fortress')
+            if docker_health['success']:
+                health_status['api'] = 'healthy' in docker_health['stdout'].lower()
+            
+            docker_dashy = self.run_command('docker ps --format "table {{.Names}}\t{{.Status}}" --filter name=dashy')
+            if docker_dashy['success']:
+                health_status['dashy'] = 'healthy' in docker_dashy['stdout'].lower() or 'up' in docker_dashy['stdout'].lower()
         
         return health_status
 
