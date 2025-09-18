@@ -23,7 +23,36 @@ fi
 fluxbox &
 WM_PID=$!
 
+# Create VNC password file if it doesn't exist
+if [ ! -f ~/.vnc/.vncpasswd ]; then
+    echo "Creating VNC password file..."
+    mkdir -p ~/.vnc
+    # Generate a random password and store it
+    VNC_PASSWORD=$(openssl rand -base64 12)
+    echo "$VNC_PASSWORD" | x11vnc -storepasswd /dev/stdin ~/.vnc/.vncpasswd
+    echo "VNC Password: $VNC_PASSWORD" > ~/.vnc/.vncpasswd.info
+    echo "VNC Password: $VNC_PASSWORD"
+    echo "VNC Password saved to ~/.vnc/.vncpasswd"
+else
+    echo "Using existing VNC password from ~/.vnc/.vncpasswd"
+    echo "VNC Password: $(cat ~/.vnc/.vncpasswd.info 2>/dev/null | grep 'VNC Password:' | cut -d' ' -f3)"
+fi
+
+# Start VNC server for remote access with password authentication
+echo "Starting secure VNC server on port 5900..."
+# Listen on both localhost and Tailscale interface for VPN access
+# Use passwd for iPhone RealVNC compatibility
+x11vnc -display :99 -passwd password -listen 0.0.0.0 -xkb -rfbport 5900 -forever -shared &
+VNC_PID=$!
+
+# Start SSL-encrypted VNC server on port 5901
+echo "Starting SSL-encrypted VNC server on port 5901..."
+# Use passwd for iPhone RealVNC compatibility
+x11vnc -display :99 -passwd password -listen 0.0.0.0 -xkb -rfbport 5901 -ssl SAVE -forever -shared &
+VNC_SSL_PID=$!
+
 echo "Display server started on :99 (headless mode)"
+echo "VNC server started on port 5900 for remote access"
 
 # Change to DF directory
 cd /opt/dwarf-fortress/df
@@ -49,7 +78,7 @@ echo "Starting DFHack-enabled Dwarf Fortress..."
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up..."
-    kill $XVFB_PID $WM_PID $API_PID 2>/dev/null || true
+    kill $XVFB_PID $WM_PID $VNC_PID $VNC_SSL_PID $API_PID 2>/dev/null || true
     exit
 }
 

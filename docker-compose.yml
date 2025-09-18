@@ -3,18 +3,20 @@ version: '3.8'
 services:
   dwarf-fortress:
     build: .
+    platform: linux/amd64  # Force x86_64 architecture for Dwarf Fortress
     container_name: dwarf-fortress-ai
+    privileged: true  # Allow dfhack to use setarch
     ports:
       - "8080:8080"  # API server for dashboard integration
-      - "4000:4000"  # NoMachine remote desktop access
+      - "100.112.142.83:5900:5900"  # VNC server for Tailscale VPN access
+      - "100.112.142.83:5901:5901"  # SSL-encrypted VNC server for Tailscale VPN access
     volumes:
       - ./saves:/opt/dwarf-fortress/df/data/save    # Mount saves directory
       - ./logs:/opt/dwarf-fortress/df/stderr.txt    # Mount logs for AI analysis
       - ./output:/opt/dwarf-fortress/output:Z       # Output directory for AI analysis (with SELinux context)
+      - ./vnc-config:/home/dfuser/.vnc              # Mount VNC configuration directory
     environment:
       - DISPLAY=:99
-      - NOMACHINE_USER=dfuser
-      - NOMACHINE_PASSWORD=dfpassword
     stdin_open: true    # Keep STDIN open for interactive use
     tty: true          # Allocate a pseudo-TTY
     restart: unless-stopped
@@ -74,9 +76,6 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
 
 volumes:
   df_saves:

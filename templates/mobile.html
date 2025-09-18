@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dwarf Fortress Mobile</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .mobile-card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            margin-bottom: 1rem;
+        }
+        
+        .mobile-btn {
+            border-radius: 15px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            margin: 0.25rem;
+            width: 100%;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .status-running { background-color: #28a745; }
+        .status-stopped { background-color: #dc3545; }
+        .status-unknown { background-color: #6c757d; }
+        
+        .metric-card {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 15px;
+            margin: 0.5rem 0;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .touch-friendly {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <div class="container-fluid p-3">
+        <div class="mobile-card p-3">
+            <h4 class="text-center mb-3">
+                <i class="fas fa-mountain"></i> Fortress Mobile
+            </h4>
+            
+            <!-- Quick Status -->
+            <div class="row" id="quick-status">
+                <div class="col-6">
+                    <div class="metric-card">
+                        <div class="metric-value" id="containers-count">-</div>
+                        <div class="metric-label">Containers</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="metric-card" style="background: linear-gradient(135deg, #4834d4, #686de0);">
+                        <div class="metric-value" id="services-healthy">-</div>
+                        <div class="metric-label">Healthy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Container Controls -->
+        <div class="mobile-card p-3">
+            <h6 class="mb-3">
+                <i class="bi bi-gear"></i> Container Controls
+            </h6>
+            
+            <div class="row">
+                <div class="col-6">
+                    <button class="btn btn-success mobile-btn touch-friendly" onclick="controlAll('start')">
+                        <i class="bi bi-play-circle"></i> Start All
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-warning mobile-btn touch-friendly" onclick="controlAll('restart')">
+                        <i class="bi bi-arrow-clockwise"></i> Restart All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row mt-2">
+                <div class="col-6">
+                    <button class="btn btn-danger mobile-btn touch-friendly" onclick="controlAll('stop')">
+                        <i class="bi bi-stop-circle"></i> Stop All
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-info mobile-btn touch-friendly" onclick="refreshStatus()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Container Status List -->
+        <div class="mobile-card p-3">
+            <h6 class="mb-3">
+                <i class="bi bi-list"></i> Container Status
+            </h6>
+            <div id="container-list">
+                <!-- Container status will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Quick Access -->
+        <div class="mobile-card p-3">
+            <h6 class="mb-3">
+                <i class="bi bi-lightning"></i> Quick Access
+            </h6>
+            
+            <div class="d-grid gap-2">
+                <a href="http://192.168.4.90:4000" target="_blank" class="btn btn-primary mobile-btn touch-friendly">
+                    <i class="bi bi-grid-3x3-gap"></i> Dashy Dashboard
+                </a>
+                
+                <a href="http://192.168.4.90:8080/api/health" target="_blank" class="btn btn-secondary mobile-btn touch-friendly">
+                    <i class="bi bi-code"></i> API Status
+                </a>
+                
+                <a href="http://192.168.4.90:8080/api/fortress-stats" target="_blank" class="btn btn-warning mobile-btn touch-friendly">
+                    <i class="fas fa-fort-awesome"></i> Fortress Stats
+                </a>
+                
+                <button class="btn btn-success mobile-btn touch-friendly" onclick="openVNC()">
+                    <i class="bi bi-display"></i> VNC Access
+                </button>
+            </div>
+        </div>
+        
+        <!-- VNC Connection Info -->
+        <div class="mobile-card p-3" id="vnc-info" style="display: none;">
+            <h6 class="mb-3">
+                <i class="bi bi-display"></i> VNC Connection
+            </h6>
+            <div class="alert alert-info">
+                <strong>Server:</strong> 192.168.4.90:5900<br>
+                <strong>Password:</strong> None<br>
+                <strong>App:</strong> VNC Viewer (iOS App Store)
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let statusData = {};
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                statusData = await response.json();
+                updateMobileInterface();
+            } catch (error) {
+                console.error('Failed to fetch status:', error);
+                showAlert('Error', 'Failed to fetch system status', 'danger');
+            }
+        }
+        
+        function updateMobileInterface() {
+            updateQuickStatus();
+            updateContainerList();
+        }
+        
+        function updateQuickStatus() {
+            const runningContainers = statusData.containers?.filter(c => c.state === 'running').length || 0;
+            const totalContainers = statusData.containers?.length || 0;
+            
+            document.getElementById('containers-count').textContent = `${runningContainers}/${totalContainers}`;
+            
+            const healthyServices = Object.values(statusData.health || {}).filter(h => h).length;
+            const totalServices = Object.keys(statusData.health || {}).length;
+            
+            document.getElementById('services-healthy').textContent = `${healthyServices}/${totalServices}`;
+        }
+        
+        function updateContainerList() {
+            const container = document.getElementById('container-list');
+            if (!statusData.containers) return;
+            
+            container.innerHTML = '';
+            
+            statusData.containers.forEach(containerInfo => {
+                const statusClass = containerInfo.state === 'running' ? 'status-running' : 
+                                   containerInfo.state === 'exited' ? 'status-stopped' : 'status-unknown';
+                
+                const statusIcon = containerInfo.state === 'running' ? 'bi-play-circle-fill' : 
+                                  containerInfo.state === 'exited' ? 'bi-stop-circle-fill' : 'bi-question-circle-fill';
+                
+                const item = document.createElement('div');
+                item.className = 'd-flex justify-content-between align-items-center mb-2 p-2 border rounded';
+                item.innerHTML = `
+                    <div>
+                        <span class="status-indicator ${statusClass}"></span>
+                        <strong>${containerInfo.service || containerInfo.name}</strong>
+                    </div>
+                    <div>
+                        <i class="bi ${statusIcon}"></i>
+                        <small class="text-muted">${containerInfo.state}</small>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        async function controlAll(action) {
+            try {
+                const response = await fetch(`/api/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Success', `All containers ${action}ed successfully`, 'success');
+                    setTimeout(refreshStatus, 1000);
+                } else {
+                    showAlert('Error', result.error || `Failed to ${action} containers`, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error', `Network error: ${error.message}`, 'danger');
+            }
+        }
+        
+        function openVNC() {
+            const vncInfo = document.getElementById('vnc-info');
+            vncInfo.style.display = vncInfo.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function showAlert(title, message, type) {
+            // Simple alert for mobile
+            alert(`${title}: ${message}`);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            setInterval(refreshStatus, 30000); // Refresh every 30 seconds
+        });
+    </script>
+</body>
+</html>

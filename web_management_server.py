@@ -328,6 +328,11 @@ def fortress_page():
     """Fortress statistics page"""
     return render_template('fortress.html')
 
+@app.route('/mobile')
+def mobile_page():
+    """Mobile-optimized interface"""
+    return render_template('mobile.html')
+
 def signal_handler(sig, frame):
     """Handle shutdown signals"""
     print("\nShutting down Web Management Server...")

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # ARM-compatible alternative using Steam/Proton for Dwarf Fortress
+  dwarf-fortress-arm:
+    image: steamcmd/steamcmd:ubuntu-22
+    container_name: dwarf-fortress-arm
+    ports:
+      - "8080:8080"  # API server
+      - "5900:5900"  # VNC server
+    volumes:
+      - ./saves:/home/steam/df/data/save
+      - ./logs:/home/steam/logs
+      - ./output:/home/steam/output
+      - ./scripts:/home/steam/scripts
+    environment:
+      - DISPLAY=:99
+      - USER=steam
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update && 
+        apt-get install -y xvfb x11vnc fluxbox python3 python3-pip curl &&
+        pip3 install flask flask-cors &&
+        mkdir -p /home/steam/output &&
+        Xvfb :99 -screen 0 1024x768x24 &
+        x11vnc -display :99 -nopw -listen 0.0.0.0 -xkb -rfbport 5900 -forever -shared &
+        fluxbox &
+        python3 /home/steam/scripts/api_server.py &
+        tail -f /dev/null
+      "
+
+  # Web management interface (ARM compatible)
+  web-manager-arm:
+    image: python:3.11-slim
+    container_name: df-web-manager-arm
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - .:/app/project:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+    environment:
+      - FLASK_ENV=production
+      - PROJECT_PATH=/app/project
+    command: >
+      bash -c "
+        pip install flask flask-cors requests &&
+        python /app/project/web_management_server.py
+      "
+    restart: unless-stopped
+
+volumes:
+  df_saves:
+  df_logs:
+  df_output:
