@@ -142,5 +142,8 @@ def steam_status():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    print("Starting ARM-Compatible Dwarf Fortress API Server on port 8080")
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    print("ARM-Compatible Dwarf Fortress API Server")
+    print("WARNING: This is a backup server. The main API server is already running on port 8080.")
+    print("Use this only if the main container is not running or on ARM architecture.")
+    print("To start anyway, uncomment the app.run line below and change the port.")
+    # app.run(host='0.0.0.0', port=8081, debug=False)  # Changed to port 8081 to avoid conflicts

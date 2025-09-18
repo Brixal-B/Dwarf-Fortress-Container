@@ -150,15 +150,15 @@
             </h6>
             
             <div class="d-grid gap-2">
-                <a href="http://192.168.4.90:4000" target="_blank" class="btn btn-primary mobile-btn touch-friendly">
+                <a href="javascript:void(0)" onclick="openDashboard()" class="btn btn-primary mobile-btn touch-friendly">
                     <i class="bi bi-grid-3x3-gap"></i> Dashy Dashboard
                 </a>
                 
-                <a href="http://192.168.4.90:8080/api/health" target="_blank" class="btn btn-secondary mobile-btn touch-friendly">
+                <a href="javascript:void(0)" onclick="openAPI()" class="btn btn-secondary mobile-btn touch-friendly">
                     <i class="bi bi-code"></i> API Status
                 </a>
                 
-                <a href="http://192.168.4.90:8080/api/fortress-stats" target="_blank" class="btn btn-warning mobile-btn touch-friendly">
+                <a href="javascript:void(0)" onclick="openFortressStats()" class="btn btn-warning mobile-btn touch-friendly">
                     <i class="fas fa-fort-awesome"></i> Fortress Stats
                 </a>
                 
@@ -174,8 +174,9 @@
                 <i class="bi bi-display"></i> VNC Connection
             </h6>
             <div class="alert alert-info">
-                <strong>Server:</strong> 192.168.4.90:5900<br>
-                <strong>Password:</strong> None<br>
+                <strong>Local Network:</strong> <span id="local-vnc-address">192.168.4.90:5900</span><br>
+                <strong>Tailscale VPN:</strong> 100.112.142.83:5900<br>
+                <strong>Password:</strong> password<br>
                 <strong>App:</strong> VNC Viewer (iOS App Store)
             </div>
         </div>
@@ -276,8 +277,39 @@
             alert(`${title}: ${message}`);
         }
         
+        function getServerIP() {
+            // Try to get current server IP dynamically
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost') {
+                return '192.168.4.90';  // Local network fallback
+            } else if (hostname === '100.112.142.83') {
+                return '100.112.142.83';  // Tailscale VPN
+            } else {
+                return hostname;  // Use whatever IP they're accessing from
+            }
+        }
+        
+        function openDashboard() {
+            const serverIP = getServerIP();
+            window.open(`http://${serverIP}:4000`, '_blank');
+        }
+        
+        function openAPI() {
+            const serverIP = getServerIP();
+            window.open(`http://${serverIP}:8080/api/health`, '_blank');
+        }
+        
+        function openFortressStats() {
+            const serverIP = getServerIP();
+            window.open(`http://${serverIP}:8080/api/fortress-stats`, '_blank');
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Update VNC address with current server IP
+            const serverIP = getServerIP();
+            document.getElementById('local-vnc-address').textContent = `${serverIP}:5900`;
+            
             refreshStatus();
             setInterval(refreshStatus, 30000); // Refresh every 30 seconds
         });

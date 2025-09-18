@@ -11,16 +11,25 @@
 1. Open VNC Viewer
 2. Tap the "+" button
 3. Enter connection details:
-   - **Address**: `192.168.4.90:5900`
+   - **Address**: `[SERVER_IP]:5900` (use your server's IP address)
    - **Name**: `Dwarf Fortress Server`
-   - **Password**: Leave blank
+   - **Password**: `password`
 4. Tap "Save" then "Connect"
 
+> **Note**: Replace `[SERVER_IP]` with your actual server IP. Common options:
+> - **Local Network**: `192.168.4.90:5900`
+> - **Tailscale VPN**: `100.112.142.83:5900`
+
 ### **Step 3: Access Web Interface**
-Open Safari and go to:
+**For Local Network (same WiFi):**
 - **Mobile Interface**: `http://192.168.4.90:3000/mobile`
 - **Full Dashboard**: `http://192.168.4.90:3000`
 - **API Status**: `http://192.168.4.90:8080/api/health`
+
+**For Tailscale VPN / Remote Access:**
+- **Mobile Interface**: `http://100.112.142.83:3000/mobile`
+- **Full Dashboard**: `http://100.112.142.83:3000`
+- **API Status**: `http://100.112.142.83:8080/api/health`
 
 ## 🎮 **iPhone Gaming Tips**
 
