@@ -42,6 +42,14 @@ RUN chmod +x /opt/dwarf-fortress/df_api_server.py
 # Download Dwarf Fortress and DFHack
 RUN ./download_df.sh
 
+# Create a dummy setarch script to avoid permission issues in Docker
+RUN echo '#!/bin/bash' > /usr/local/bin/setarch-wrapper && \
+    echo '# Dummy setarch for Docker container - just execute without setarch' >> /usr/local/bin/setarch-wrapper && \
+    echo 'shift; shift; exec "$@"' >> /usr/local/bin/setarch-wrapper && \
+    chmod +x /usr/local/bin/setarch-wrapper && \
+    mv /usr/bin/setarch /usr/bin/setarch-orig && \
+    ln -s /usr/local/bin/setarch-wrapper /usr/bin/setarch
+
 # Create a user for running the application
 RUN useradd -m -s /bin/bash dfuser
 

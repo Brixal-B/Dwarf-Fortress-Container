@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     netcat-traditional \
     docker.io \
+    docker-compose \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -20,15 +21,18 @@ COPY web_management_server.py .
 COPY templates/ templates/
 COPY static/ static/
 
-# Create non-root user for security
-RUN groupadd -g 1000 webmanager && \
-    useradd -u 1000 -g webmanager -s /bin/bash webmanager
+# Create non-root user for security and add to docker group
+# First check what groups exist and their GIDs
+RUN cat /etc/group | grep docker || true && \
+    groupadd -g 1000 webmanager && \
+    useradd -u 1000 -g webmanager -s /bin/bash webmanager && \
+    usermod -a -G docker webmanager
 
 # Set permissions
 RUN chown -R webmanager:webmanager /app
 
-# Switch to non-root user
-USER webmanager
+# Switch to non-root user (commented out temporarily for Docker socket access)
+# USER webmanager
 
 # Expose port
 EXPOSE 3000

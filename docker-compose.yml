@@ -8,8 +8,8 @@ services:
     privileged: true  # Allow dfhack to use setarch
     ports:
       - "8080:8080"  # API server for dashboard integration
-      - "5900:5900"  # VNC server (accessible from all interfaces)
-      - "5901:5901"  # SSL-encrypted VNC server (accessible from all interfaces)
+      - "5900:5900"  # VNC server
+      - "5901:5901"  # NoMachine remote desktop access
     volumes:
       - ./saves:/opt/dwarf-fortress/df/data/save    # Mount saves directory
       - ./logs:/opt/dwarf-fortress/df/stderr.txt    # Mount logs for AI analysis
@@ -40,10 +40,11 @@ services:
       - dwarf-fortress
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   web-manager:
     build:
@@ -53,7 +54,7 @@ services:
     ports:
       - "3000:3000"    # Web management interface
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker socket for container management
+      - /var/run/docker.sock:/var/run/docker.sock:rw  # Docker socket for container management (rw for commands)
       - .:/app/project:ro                              # Project files for management
       - ./templates:/app/templates:ro                  # Template files
       - ./static:/app/static:ro                        # Static files
